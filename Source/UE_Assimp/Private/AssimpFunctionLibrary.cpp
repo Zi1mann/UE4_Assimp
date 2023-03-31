@@ -321,7 +321,7 @@ UAIScene* UAssimpFunctionLibrary::ImportScene(FString FileName, UObject* ParentO
 
 
 void UAssimpFunctionLibrary::ImportScenesAsync(TArray<FString> InFilenames,UObject* ParentObject, int Flags, bool DisableAutoSpaceChange,FOnProgressUpdated OnProgressUpdated,FOnImportSceneComplete OnImportSceneComplete)
-{
+	{
 
 	//I'm a noob in realms of async if you find a better way to keep data do a pull request
 	Assimp::DefaultLogger::set(new UEAssimpStream());
