@@ -104,9 +104,12 @@ UAIScene* UAIScene::InternalConstructNewScene(UObject* Parent, const aiScene* Sc
 			Material->Material = Scene->mMaterials[Index];
 			SceneObject->OwnedMaterials[Index] = Material;
 			FLinearColor baseColor; 
-			UE_LOG(LogAssimp, Warning, TEXT("name of material: %s"), *Material->GetMaterialName());
+			float metallic; 
 			Material->GetMaterialBaseColor(baseColor);
+			Material->GetMaterialMetallic(metallic);
+			UE_LOG(LogAssimp, Warning, TEXT("name of material: %s"), *Material->GetMaterialName());
 			UE_LOG(LogAssimp, Warning, TEXT("base color: %s"), *baseColor.ToString()); 
+			UE_LOG(LogAssimp, Warning, TEXT("metallic: %f"), metallic); 
 		}
 	}
 

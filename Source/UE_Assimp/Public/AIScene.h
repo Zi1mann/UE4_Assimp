@@ -17,17 +17,6 @@ class UAICamera;
 class UAILight;
 class UAIMaterial;
 //wrapper for scene
-
-/* USTRUCT(BlueprintType)
-struct FSTRUCT_MaterialParameters_CPP
-{
-	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FLinearColor baseColor; 
-};*/
-
-
-
 UCLASS(BlueprintType, DefaultToInstanced)
 class UE_ASSIMP_API UAIScene : public UObject
 {

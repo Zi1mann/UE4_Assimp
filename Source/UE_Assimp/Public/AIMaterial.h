@@ -392,6 +392,21 @@ enum EAiShadingMode
 #endif
 };
 
+
+/*Struct to store material paramters in*/
+USTRUCT(BlueprintType)
+struct FSTRUCT_MaterialParameters_CPP
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FLinearColor baseColor;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		float opacity;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		float shininess; 
+};
+
+
 UCLASS(BlueprintType)
 class UE_ASSIMP_API UAIMaterial : public UObject
 {
@@ -402,9 +417,22 @@ public:
 	static UAIMaterial* InternalCreateNewObject(UObject* Parent, aiMaterial* InMaterial);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Assimp|Material")
-	void GetMaterialBaseColor(FLinearColor& BaseColor) const;
+		void GetMaterialBaseColor(FLinearColor& BaseColor) const;
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Assimp|Material")
+		void GetMaterialOpacity(float& Opacity) const; 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Assimp|Material")
+		void GetMaterialEmissiveColor(FLinearColor& emissiveColor);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Assimp|Material")
+		void GetMaterialEmissiveIntensity(float& emissiveStrength);
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Assimp|Material")
-	void GetMaterialOpacity(float& Opacity ) const;
+		void GetMaterialShininess(float& shininess);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Assimp|Material")
+		void GetMaterialSpecular(float& specular);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Assimp|Material")
+		void GetMaterialMetallic(float& metallic);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Assimp|Material")
+		void GetMaterialRoughness(float& roughness);
+
 
 	// -------------------------------------------------------------------
 	/**
@@ -461,6 +489,9 @@ public:
 		FString& Path,
 		EAiTextureMapping Mapping
 	);
+
+	UFUNCTION(BlueprintCallable)
+		static void GetMaterialParamters(UAIMaterial* inputMaterial, FSTRUCT_MaterialParameters_CPP& params);
 
 private:
 	aiMaterial* Material;
