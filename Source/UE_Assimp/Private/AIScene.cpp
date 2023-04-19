@@ -14,6 +14,32 @@
 #include "Kismet/KismetRenderingLibrary.h"
 #include "Serialization/BufferArchive.h"
 
+/*void CopyNodesWithMeshes(const aiScene* aiScene, aiNode node, aiMatrix4x4 accTransform)
+{
+	SceneObject parent;
+	Matrix4x4 transform;
+	// if node has meshes, create a new scene object for it
+	if (node.mNumMeshes > 0)
+	{
+		SceneObjekt newObject = new SceneObject;
+		targetParent.addChild(newObject);
+		// copy the meshes
+		CopyMeshes(node, newObject);
+		// the new object is the parent for all child nodes
+		parent = newObject;
+		transform.SetUnity();
+	}
+	else
+	{
+		// if no meshes, skip the node, but keep its transformation
+		parent = targetParent;
+		transform = node.mTransformation * accTransform;
+	}
+	// continue for all child nodes
+	for (all node.mChildren) {
+		CopyNodesWithMeshes(node.mChildren[a], parent, transform);
+	}
+}*/
 
 UAIScene* UAIScene::InternalConstructNewScene(UObject* Parent, const aiScene* Scene, const bool DisableAutoSpaceChange)
 {
@@ -27,14 +53,19 @@ UAIScene* UAIScene::InternalConstructNewScene(UObject* Parent, const aiScene* Sc
 	SceneObject->OwnedCameras.AddUninitialized(Scene->mNumCameras);
 	SceneObject->OwnedMaterials.AddUninitialized(Scene->mNumMaterials);
 
-
         //Add Meshes
 	if (Scene->HasMeshes())
 	{
+
 		for (unsigned Index = 0; Index < Scene->mNumMeshes; Index++)
 		{
 			UAIMesh* Mesh = NewObject<UAIMesh>(SceneObject, UAIMesh::StaticClass(), NAME_None, RF_Transient);
 			Mesh->Mesh = Scene->mMeshes[Index];
+			bool hasPositions = Scene->mMeshes[Index]->HasPositions(); 
+			if (hasPositions) {
+				UE_LOG(LogAssimp, Warning, TEXT("hasPositions == true")); 
+				
+			}
 			SceneObject->OwnedMeshes[Index] = Mesh;
 		}
 	}
@@ -65,12 +96,17 @@ UAIScene* UAIScene::InternalConstructNewScene(UObject* Parent, const aiScene* Sc
 	//Add Materials
 	if (Scene->HasMaterials())
 	{
+		UE_LOG(LogAssimp, Warning, TEXT("Scene has indeed material(s)."));
 		for (unsigned Index = 0; Index < Scene->mNumMaterials; Index++)
 		{
 			UAIMaterial* Material = NewObject<UAIMaterial>(SceneObject, UAIMaterial::StaticClass(), NAME_None,
 			                                               RF_Transient);
 			Material->Material = Scene->mMaterials[Index];
 			SceneObject->OwnedMaterials[Index] = Material;
+			FLinearColor baseColor; 
+			UE_LOG(LogAssimp, Warning, TEXT("name of material: %s"), *Material->GetMaterialName());
+			Material->GetMaterialBaseColor(baseColor);
+			UE_LOG(LogAssimp, Warning, TEXT("base color: %s"), *baseColor.ToString()); 
 		}
 	}
 
@@ -102,6 +138,19 @@ UAIScene* UAIScene::InternalConstructNewScene(UObject* Parent, const aiScene* Sc
             aiMatrix4x4t<float>::Scaling( aiVector3t<float>(SceneObject->SceneScale), tmpScale);
             AdjustmentXfm = tmpScale * tmpRot;
         }
+		
+		bool hasParent = true; 
+		UAINode* parentNode = RootNode->GetParentNode(hasParent); 
+
+		if (hasParent) {
+			UE_LOG(LogAssimp, Warning, TEXT("hasParent: %g"), hasParent);
+			FTransform tmpTransform; 
+			parentNode->GetNodeTransform(tmpTransform);
+			//aiMatrix4x4t<float>::Translation(); 
+		}
+		else {
+			UE_LOG(LogAssimp, Warning, TEXT("hasParent: FALSE "), hasParent);
+		}
 
 	RootNode->Setup(Scene->mRootNode, SceneObject, AdjustmentXfm);
 

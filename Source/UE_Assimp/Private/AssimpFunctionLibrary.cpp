@@ -1,10 +1,12 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+	// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "AssimpFunctionLibrary.h"
 
 #include "AIBone.h"
 #include "AIScene.h"
+#include "AINode.h"
+#include "AIMaterial.h"
 #include "UE_Assimp.h"
 #include "assimp/cimport.h"
 #include "assimp/DefaultLogger.hpp"
@@ -287,6 +289,7 @@ void UAssimpFunctionLibrary::ImportScenes(TArray<FString> InFilenames, UObject* 
 
 	for (FString FileName : InFilenames)
 	{
+		TArray <FVector> temp; 
 		UAIScene* Object = UAssimpFunctionLibrary::ImportScene(FileName, ParentObject, Flags, DisableAutoSpaceChange);
 		if (Object != nullptr)
                 {
@@ -295,7 +298,73 @@ void UAssimpFunctionLibrary::ImportScenes(TArray<FString> InFilenames, UObject* 
 	}
 }
 
+/*void CopyNodesWithMeshes(UAINode node, UAIScene targetParent, aiMatrix4x4 accTransform)
+{
+	UAIScene parent;
+	aiMatrix4x4 transform;
+	// if node has meshes, create a new scene object for it
+	bool hasMeshes; 
+	TArray <UAIMesh*> meshes; 
+	hasMeshes = node.GetNodeMeshes(meshes); 
+	if (hasMeshes)
+	{
+		UAIScene newScene;
+		//targetParent. addChild(newScene);
+		// copy the meshes
+		//CopyMeshes(node, newObject);
+		// the new object is the parent for all child nodes
+		// parent = newScene;
+		// transform.SetUnity();
+	}
+	else
+	{
+		// if no meshes, skip the node, but keep its transformation
+		parent = targetParent;
+		//FTransform transform = node.GetNodeTransform()  UAssimpFunctionLibrary::aiMatToTransform(accTransform); 
+	}
+	// continue for all child nodes
+	const TArray <UAINode*> children = node.GetChildNodes(); 
+
+	for (int i = 0; i < children.Num(); i++) {
+		CopyNodesWithMeshes(children[i], parent, transform);
+	}
+	for (all node.mChildren)
+		CopyNodesWithMeshes(node.mChildren[a], parent, transform);
+}*/
+
+
+TArray <UAIScene*> UAssimpFunctionLibrary::ImportSceneSplitMeshes(FString fileName, UObject* parentObjext, int flags, bool disableAutoSpaceChange) {
+	TArray <UAIScene*> aiScenes; 
+
+	return aiScenes; 
+}
+
+
 UAIScene* UAssimpFunctionLibrary::ImportScene(FString FileName, UObject* ParentObject, int Flags, bool DisableAutoSpaceChange)
+{
+	Assimp::DefaultLogger::set(new UEAssimpStream());
+
+	if (!DisableAutoSpaceChange) {
+		Flags |= aiProcess_MakeLeftHanded | aiProcessPreset_TargetRealtime_Quality;
+	}
+
+	const struct aiScene* scene = aiImportFile(TCHAR_TO_UTF8(*FileName), (unsigned int)Flags);
+
+	if (!scene)
+	{
+		UE_LOG(LogAssimp, Error, TEXT("Error importing scene in assimpfunction library "))
+			return nullptr;
+	}
+	else
+	{
+		UAIScene* Object = UAIScene::InternalConstructNewScene(ParentObject, scene, DisableAutoSpaceChange);
+		Object->FullFilePath = FileName;
+		return Object;
+	}
+}
+
+
+UAIScene* UAssimpFunctionLibrary::NewImportScene(FString FileName, UObject* ParentObject, int Flags, bool DisableAutoSpaceChange, TArray <FTransform>& nodeTransforms)
 {
 	Assimp::DefaultLogger::set(new UEAssimpStream());
 
@@ -314,6 +383,25 @@ UAIScene* UAssimpFunctionLibrary::ImportScene(FString FileName, UObject* ParentO
 	{
 		UAIScene* Object = UAIScene::InternalConstructNewScene(ParentObject, scene, DisableAutoSpaceChange);
 		Object->FullFilePath=FileName;
+
+		UAINode* root = Object->GetRootNode(); 
+		if (root) {
+			const TArray <UAINode*> children = root->GetChildNodes();
+			UE_LOG(LogAssimp, Warning, TEXT("Root node num of children: %d"), children.Num());
+
+			TArray <UAIMesh*> meshes; 
+			root->GetNodeMeshes(meshes);
+			for (int i = 0; i < children.Num(); i++) {
+				FTransform temp;
+				children[i]->GetNodeTransform(temp);
+				FVector meshLoc = temp.GetLocation();
+				FVector meshScale = temp.GetScale3D();
+				//relPosVectors.Add(meshLoc);
+				UE_LOG(LogAssimp, Warning, TEXT("loc: %s"), *meshLoc.ToString());
+				UE_LOG(LogAssimp, Warning, TEXT("scale: %s"), *meshScale.ToString());
+				nodeTransforms.Add(temp);
+			}
+		}
 		return Object;
 	}
 }
@@ -427,3 +515,8 @@ void UAssimpFunctionLibrary::SetActorNameDebug(AActor* InActor, FString ActorNam
 	InActor->SetActorLabel(*ActorName);
 #endif //  
 }
+
+void UAssimpFunctionLibrary::GetMaterialBaseColor(UAIMaterial* inputMaterial, FLinearColor& baseColor) {
+	inputMaterial->GetMaterialBaseColor(baseColor); 
+}
+

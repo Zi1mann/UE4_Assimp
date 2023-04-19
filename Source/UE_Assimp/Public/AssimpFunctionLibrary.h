@@ -51,7 +51,11 @@ FileTypes					The type filters to show in the dialog. This string should be a "|
 	static void ImportScenes(TArray<FString> InFilenames, UObject* ParentObject, TArray<UAIScene*>& Scenes, int Flags, bool DisableAutoSpaceChange);
 
 	UFUNCTION(BlueprintCallable)
+	static TArray <UAIScene*> ImportSceneSplitMeshes(FString fileName, UObject* parentObjext, int flags, bool disableAutoSpaceChange); 
+	UFUNCTION(BlueprintCallable)
 	static UAIScene* ImportScene(FString FileName, UObject* ParentObject, int Flags, bool DisableAutoSpaceChange);
+	UFUNCTION(BlueprintCallable)
+	static UAIScene* NewImportScene(FString FileName, UObject* ParentObject, int Flags, bool DisableAutoSpaceChange, TArray <FTransform>& nodeTransforms);
 	//Experimental
 	UFUNCTION(BlueprintCallable)
 	void ImportScenesAsync(TArray<FString> InFilenames,UObject* ParentObject, int Flags, bool DisableAutoSpaceChange,FOnProgressUpdated OnProgressUpdated,FOnImportSceneComplete OnImportSceneComplete);
@@ -855,5 +859,9 @@ FileTypes					The type filters to show in the dialog. This string should be a "|
 	}
 
 	UFUNCTION(BlueprintCallable)
-		static void SetActorNameDebug(AActor* InActor, FString ActorName);
+	static void SetActorNameDebug(AActor* InActor, FString ActorName);
+
+	/*Current test function to access material parameters from blueprint*/
+	UFUNCTION(BlueprintCallable)
+		static void GetMaterialBaseColor(UAIMaterial* inputMaterial, FLinearColor& baseColor); 
 };
