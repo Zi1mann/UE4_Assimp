@@ -506,10 +506,19 @@ FTransform UAssimpFunctionLibrary::aiMatToTransform(aiMatrix4x4 NodeTransform)
 	return Transform;
 }
 
-/*NEEDS TO BE IMPLEMENTED*/
-static aiMatrix4x4 TransformtoaiMat(FTransform NodeTransform)
+aiMatrix4x4 UAssimpFunctionLibrary::TransformtoaiMat(FTransform nodeTransform)
 {
+	FMatrix temp = nodeTransform.ToMatrixWithScale();
+	aiMatrix4x4 targetTransform;
 
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			targetTransform[i][j] = temp.M[j][i]; 
+		}
+	}
+	return targetTransform; 
 }
 
 

@@ -22,7 +22,6 @@ DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnProgressUpdated, float, NormalPercentage, 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnImportSceneComplete, const TArray<UAIScene*>&, ImportedScenes);
 
 
-
 USTRUCT(BlueprintType)
 struct FSTRUCT_MaterialIndex_CPP
 {
@@ -83,7 +82,7 @@ FileTypes					The type filters to show in the dialog. This string should be a "|
 	void ImportScenesAsync(TArray<FString> InFilenames,UObject* ParentObject, int Flags, bool DisableAutoSpaceChange,FOnProgressUpdated OnProgressUpdated,FOnImportSceneComplete OnImportSceneComplete);
 
 	static FTransform aiMatToTransform(aiMatrix4x4 NodeTransform);
-	static aiMatrix4x4 TransformtoaiMat(FTransform NodeTransform);
+	static aiMatrix4x4 TransformtoaiMat(FTransform nodeTransform);
 	//Apply normal map settings to imported textures
 	UFUNCTION(BlueprintCallable)
 	static void ApplyNormalMapSettingsToTexture(UTexture2D* In)

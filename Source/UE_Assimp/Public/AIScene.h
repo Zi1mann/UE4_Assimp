@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 
 #include "assimp/scene.h"
+#include "assimp/postprocess.h"
+#include "assimp/Exporter.hpp"
 #include "UObject/NoExportTypes.h"
 #include "ProceduralMeshComponent.h"
 #include "AIScene.generated.h"
@@ -41,6 +43,9 @@ class UAINode;
 class UAICamera;
 class UAILight;
 class UAIMaterial;
+
+DECLARE_DYNAMIC_DELEGATE_OneParam(FAsyncDelegateExample, const TArray<float>&, OutData);
+
 //wrapper for scene
 UCLASS(BlueprintType, DefaultToInstanced)
 class UE_ASSIMP_API UAIScene : public UObject
@@ -53,10 +58,17 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	static void ConstructAssimpSceneAndWriteToFBXFile(UObject* Parent, TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData, TArray <UMaterialInstanceDynamic*> dynamicMaterialInstances);
+	UFUNCTION(BlueprintCallable)
+	static void EmptySceneTestExport(); 
 
+	UFUNCTION(BlueprintCallable)
+	static void AddNumbersAsync(TArray<float> InData, const FAsyncDelegateExample& OutData);
+
+	//UFUNCTION(BlueprintCallable)
+	//static void Async_EmptySceneTestExport(const aiScene* scene, const FAsyncExportScene& result);
 
 	/*WIP Function:
-	WIll spawn all meshes in most optimised fashion 
+	Will spawn all meshes in most optimised fashion 
 	*/
 	UFUNCTION(BlueprintCallable, Category="Assimp|Scene")
 	TArray<UMeshComponent*> SpawnAllMeshes(FTransform Transform, TSubclassOf<AActor> ClassToSpawn);

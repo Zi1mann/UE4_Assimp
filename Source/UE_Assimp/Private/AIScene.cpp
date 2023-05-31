@@ -1,8 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+#include "CoreMinimal.h"
 
 #include "AIScene.h"
-
 #include "AICamera.h"
 #include "AILight.h"
 #include "AIMesh.h"
@@ -14,6 +14,7 @@
 #include "Serialization/BufferArchive.h"
 #include "Serialization/BufferArchive.h"
 
+using namespace Assimp; 
 
 /*void CopyNodesWithMeshes(const aiScene* aiScene, aiNode node, aiMatrix4x4 accTransform)
 {
@@ -358,13 +359,14 @@ EPixelFormat UAIScene::GetPixelFormat(const aiTexture* Texture)
 	 
 	 // init new root node
 	 scene->mRootNode = new aiNode();
-	 scene->mRootNode->mName = "RootNode";
-	 scene->mRootNode->mTransformation = transf;
+	 scene->mRootNode->mName = aiString("RootNode");
+	 //scene->mRootNode->mTransformation = transf;
+	 //UE_LOG(LogAssimp, Warning, TEXT("name of root node: %s"), const(scene->mRootNode->mName)); 
 
 	 // initialize child nodes according to number of meshes given in mesh data struct, each mesh will be associated with its own child node
-	 //scene->mRootNode->mNumMeshes = sceneMeshData.Num(); 
+	 // old: scene->mRootNode->mNumMeshes = sceneMeshData.Num(); 
 	 scene->mRootNode->mNumMeshes = 0; 
-	 scene->mRootNode->mMeshes = new unsigned int[0];
+	 scene->mRootNode->mMeshes = new unsigned int[1];
 	 scene->mRootNode->mNumChildren = sceneMeshData.Num(); 
 	 //scene->mRootNode->mChildren = aiNode[sceneMeshData.Num()]; 
 	 for (int i = 0; i < sceneMeshData.Num(); i++) {
@@ -377,61 +379,99 @@ EPixelFormat UAIScene::GetPixelFormat(const aiTexture* Texture)
 		 TArray<FProcMeshTangent> tans = item.tangents; 
 		 FTransform trans = item.nodeTransform; 
 		 TArray<int32> matId = item.materialIdcs; 
-
+		 
 		 // initialize and set up child node
 		 aiNode* child = new aiNode();
 		 child->mParent = scene->mRootNode;
 		 child->mNumMeshes = 1;
+		 child->mMeshes = new unsigned int[1]; 
 		 child->mMeshes[0] = i;
 		
-		 // calculate ai transform
-		 aiVector3D scale = aiVector3D(1, 1, 1);
-		 aiVector3D pos = aiVector3D(0, 0, 0);
-		 /* not sure about this*/
-		 aiQuaternion rot = aiQuaternion(aiVector3D(0, 1, 1), 0);
-		 aiMatrix4x4 transf = aiMatrix4x4(scale, rot, pos);
+		 
+		 aiMatrix4x4 childTrans = UAssimpFunctionLibrary::TransformtoaiMat(trans);
+		 child->mTransformation = childTrans;
 
-
-		 child->mTransformation
-		
 		 // using the geometry information provided in the input, construct mesh
 		 aiMesh* mesh = new aiMesh();
+		
 		 mesh->mNumVertices = verts.Num(); 
 		 mesh->mVertices = new aiVector3D[mesh->mNumVertices]; 
 		 mesh->mNormals = new aiVector3D[mesh->mNumVertices]; 
 		 mesh->mTangents = new aiVector3D[mesh->mNumVertices];
 		 mesh->mBitangents = new aiVector3D[mesh->mNumVertices]; 
 		 
-		 /* ???? */
+		 // ????
 		 mesh->mTextureCoords[0] = new aiVector3D[mesh->mNumVertices]; 
 		 mesh->mNumUVComponents[0] = 2;
-
+		
 		 // now assign vertices etc
+		/*
 		 for (int j = 0; j < verts.Num();j++)
 		 {	
-			 UE_LOG(LogAssimp, Warning, TEXT("works here")); 
 			 //aiVector3D aiVert =  
 			 mesh->mVertices[j] = aiVector3D(verts[j].X, verts[j].Y, verts[j].Z);
 			 mesh->mNormals[j] = aiVector3D(norms[j].X, norms[j].Y, norms[j].Z);
+			 //Maybe assimp postprocessing can be used here! 
 			 //FProcMeshTangent tan = tans[j]; 
 			 //FProcMeshTangent test = FProcMeshTangent(1, 0.5, 3); 
+			 // 
+			 //lets try without tangents, otherwise calculate tangents
 
-			 //lets try without tangents 
-		 }
-
-
-		 
-
+		 } 
+			*/
 		 // Just for testing if this works so far
 		 for (int j = 0; j < matId.Num(); j++)
 		 {
 			 UE_LOG(LogAssimp, Warning, TEXT("mat id = %d"), matId[j]); 
 		 }
-
 	 }
-
-
+	 Exporter exporter;
+	 FString dir = FPaths::ProjectDir();
+	 dir += FString(TEXT("Export/Scenes/test.fbx"));
+	 
+	 aiScene* testscene = new aiScene();
+	 exporter.Export(testscene, "fbx", "test.fbx");
  }
+
+
+ void UAIScene::EmptySceneTestExport()
+ {
+	 aiScene testscene;
+	 FString dir = FPaths::ProjectDir();
+	 dir += FString(TEXT("Export/Scenes/test.fbx"));
+	 Exporter exporter;
+	 if (exporter.Export(&testscene, "fbx", TCHAR_TO_ANSI(*dir)) != AI_SUCCESS)
+	 {
+		 UE_LOG(LogAssimp, Fatal, TEXT("Exporting scene to fbx failed."));
+	 }
+ }
+
+void UAIScene::AddNumbersAsync(TArray<float> InData, const FAsyncDelegateExample& Result)
+{
+	AsyncTask(ENamedThreads::AnyThread, [InData = MoveTemp(InData), Result]() mutable
+	{
+		// Just for example
+		for (float& InDataElement : InData)
+		{
+			InDataElement += 10;
+		}
+
+		aiScene testscene;
+		FString dir = FPaths::ProjectDir();
+		dir += FString(TEXT("Export/Scenes/test.fbx"));
+		Exporter exporter;
+		if (exporter.Export(&testscene, "fbx", TCHAR_TO_ANSI(*dir)) != AI_SUCCESS)
+		{
+			UE_LOG(LogAssimp, Fatal, TEXT("Exporting scene to fbx failed."));
+		}
+
+		AsyncTask(ENamedThreads::GameThread, [OutData = MoveTemp(InData), Result]() mutable
+		{
+			Result.ExecuteIfBound(OutData);
+		});
+	});
+}
+
 
  /*void UAIScene::AddMeshAsNode(UAIScene* targetScene) {
 
