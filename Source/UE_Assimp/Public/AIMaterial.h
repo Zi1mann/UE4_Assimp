@@ -393,20 +393,6 @@ enum EAiShadingMode
 };
 
 
-/*Struct to store material paramters in*/
-USTRUCT(BlueprintType)
-struct FSTRUCT_MaterialParameters_CPP
-{
-	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FLinearColor baseColor;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		float opacity;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		float shininess; 
-};
-
-
 UCLASS(BlueprintType)
 class UE_ASSIMP_API UAIMaterial : public UObject
 {
@@ -432,6 +418,8 @@ public:
 		void GetMaterialMetallic(float& metallic);
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Assimp|Material")
 		void GetMaterialRoughness(float& roughness);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Assimp|Material")
+		void GetMaterialRefractiveIndex(float& refIndex);
 
 
 	// -------------------------------------------------------------------
@@ -490,8 +478,8 @@ public:
 		EAiTextureMapping Mapping
 	);
 
-	UFUNCTION(BlueprintCallable)
-		static void GetMaterialParamters(UAIMaterial* inputMaterial, FSTRUCT_MaterialParameters_CPP& params);
+	//UFUNCTION(BlueprintCallable)
+		//static void GetMaterialParamters(UAIMaterial* inputMaterial, FSTRUCT_MaterialParameters_CPP& params);
 
 private:
 	aiMaterial* Material;

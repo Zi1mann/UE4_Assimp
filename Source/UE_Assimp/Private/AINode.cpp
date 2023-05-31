@@ -9,7 +9,7 @@
 
 const TArray<UAINode*>& UAINode::GetChildNodes() const
 {
-	return OwnedNodes;
+		return OwnedNodes;
 }
 
 void UAINode::Setup(aiNode* InNode, UAIScene* Scene, const aiMatrix4x4& ParentTransform)

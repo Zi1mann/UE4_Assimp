@@ -6,7 +6,32 @@
 
 #include "assimp/scene.h"
 #include "UObject/NoExportTypes.h"
+#include "ProceduralMeshComponent.h"
 #include "AIScene.generated.h"
+
+
+USTRUCT(BlueprintType)
+struct FSTRUCT_ExportProcMeshData_CPP
+{
+	GENERATED_BODY()
+		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray <FVector> vertices;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray <int32> triangles;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray <FVector> normals;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray <FVector2D> UV0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray <FProcMeshTangent> tangents;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FTransform nodeTransform;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray<int32> materialIdcs;
+
+	UPROPERTY()
+		UObject* SafeObjectPointer;
+};
 
 /**
  * 
@@ -25,6 +50,9 @@ class UE_ASSIMP_API UAIScene : public UObject
 	//TODO Get Meta data 
 public:
 	static UAIScene* InternalConstructNewScene(UObject* Parent, const aiScene* Scene, const bool DisableAutoSpaceChange);
+
+	UFUNCTION(BlueprintCallable)
+	static void ConstructAssimpSceneAndWriteToFBXFile(UObject* Parent, TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData, TArray <UMaterialInstanceDynamic*> dynamicMaterialInstances);
 
 
 	/*WIP Function:
@@ -64,13 +92,20 @@ public:
 	//! Returns an embedded texture. if null then check path or texture is not embedded and must be imported using unreal default import texture function
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Assimp|Scene")
 	UTexture2D* GetEmbeddedTexture(FString FilePath, bool bIsNormalMap);
+	/*NEEDS TO BE IMPLEMENTED*/
+	//Retrieves relative filepath to the embedded texture and the texture type to load it directly from this path using Unreal
+	//UFUNCTION(BlueprintCallable, BlueprintPure)
+	//const void GetEmbeddedTexturePathAndType(FString& texturePath)//, EAiTextureType& textureType);
 	UPROPERTY(BlueprintReadOnly)
 	FString FullFilePath;
 	UFUNCTION(BlueprintCallable,BlueprintPure)
 	float GetSceneScale();
 
-
+	//UFUNCTION(BlueprintCallable, BlueprintPure)
 	
+	//UFUNCTION(BlueprintCallable, BlueprintPure)
+	//UFUNCTION(BlueprintCallable)
+		//static void AddMeshAsNode(UAIScene* targetScene, FSTRUCT_ExportProcMeshData_CPP meshData);
 
 	static EPixelFormat GetPixelFormat(const aiTexture* Texture);
 

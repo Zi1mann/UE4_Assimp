@@ -22,6 +22,28 @@ DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnProgressUpdated, float, NormalPercentage, 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnImportSceneComplete, const TArray<UAIScene*>&, ImportedScenes);
 
 
+
+USTRUCT(BlueprintType)
+struct FSTRUCT_MaterialIndex_CPP
+{
+	GENERATED_BODY()
+		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray <int32> matertialIndices;
+};
+
+USTRUCT(BlueprintType)
+struct FSTRUCT_NodeMeshHolder_CPP
+{
+	GENERATED_BODY()
+public: 
+		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray <UAIMesh*> nodeMeshes;
+		
+		FSTRUCT_NodeMeshHolder_CPP() {
+		}
+};
+
+
 UCLASS()
 class UE_ASSIMP_API UAssimpFunctionLibrary : public UBlueprintFunctionLibrary
 {
@@ -55,13 +77,13 @@ FileTypes					The type filters to show in the dialog. This string should be a "|
 	UFUNCTION(BlueprintCallable)
 	static UAIScene* ImportScene(FString FileName, UObject* ParentObject, int Flags, bool DisableAutoSpaceChange);
 	UFUNCTION(BlueprintCallable)
-	static UAIScene* NewImportScene(FString FileName, UObject* ParentObject, int Flags, bool DisableAutoSpaceChange, TArray <FTransform>& nodeTransforms);
+	static UAIScene* NewImportScene(FString FileName, UObject* ParentObject, int Flags, bool DisableAutoSpaceChange, TArray <FTransform>& nodeTransforms, TArray <FSTRUCT_NodeMeshHolder_CPP>& sceneMeshHolder, TArray <int32>& materialIndices);
 	//Experimental
 	UFUNCTION(BlueprintCallable)
 	void ImportScenesAsync(TArray<FString> InFilenames,UObject* ParentObject, int Flags, bool DisableAutoSpaceChange,FOnProgressUpdated OnProgressUpdated,FOnImportSceneComplete OnImportSceneComplete);
 
 	static FTransform aiMatToTransform(aiMatrix4x4 NodeTransform);
-
+	static aiMatrix4x4 TransformtoaiMat(FTransform NodeTransform);
 	//Apply normal map settings to imported textures
 	UFUNCTION(BlueprintCallable)
 	static void ApplyNormalMapSettingsToTexture(UTexture2D* In)

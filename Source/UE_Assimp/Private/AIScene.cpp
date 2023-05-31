@@ -9,10 +9,11 @@
 #include "AINode.h"
 #include "AIMaterial.h"
 #include "AssimpMesh.h"
-#include "ProceduralMeshComponent.h"
 #include "assimp/cimport.h"
 #include "Kismet/KismetRenderingLibrary.h"
 #include "Serialization/BufferArchive.h"
+#include "Serialization/BufferArchive.h"
+
 
 /*void CopyNodesWithMeshes(const aiScene* aiScene, aiNode node, aiMatrix4x4 accTransform)
 {
@@ -52,19 +53,17 @@ UAIScene* UAIScene::InternalConstructNewScene(UObject* Parent, const aiScene* Sc
 	SceneObject->OwnedLights.AddUninitialized(Scene->mNumLights);
 	SceneObject->OwnedCameras.AddUninitialized(Scene->mNumCameras);
 	SceneObject->OwnedMaterials.AddUninitialized(Scene->mNumMaterials);
+	//SceneObject->OwnedRootNode.AddUniitialiued(Scene->mRootNode); 
 
         //Add Meshes
 	if (Scene->HasMeshes())
 	{
-
 		for (unsigned Index = 0; Index < Scene->mNumMeshes; Index++)
 		{
 			UAIMesh* Mesh = NewObject<UAIMesh>(SceneObject, UAIMesh::StaticClass(), NAME_None, RF_Transient);
 			Mesh->Mesh = Scene->mMeshes[Index];
 			bool hasPositions = Scene->mMeshes[Index]->HasPositions(); 
 			if (hasPositions) {
-				UE_LOG(LogAssimp, Warning, TEXT("hasPositions == true")); 
-				
 			}
 			SceneObject->OwnedMeshes[Index] = Mesh;
 		}
@@ -88,7 +87,6 @@ UAIScene* UAIScene::InternalConstructNewScene(UObject* Parent, const aiScene* Sc
 		{
 			UAILight* Light = NewObject<UAILight>(SceneObject, UAILight::StaticClass(), NAME_None, RF_Transient);
 			Light->Light = Scene->mLights[Index];
-
 			SceneObject->OwnedLights[Index] = Light;
 		}
 	}
@@ -96,7 +94,7 @@ UAIScene* UAIScene::InternalConstructNewScene(UObject* Parent, const aiScene* Sc
 	//Add Materials
 	if (Scene->HasMaterials())
 	{
-		UE_LOG(LogAssimp, Warning, TEXT("Scene has indeed material(s)."));
+		UE_LOG(LogAssimp, Log, TEXT("numOfMaterials in scene: %d"), Scene->mNumMaterials); 
 		for (unsigned Index = 0; Index < Scene->mNumMaterials; Index++)
 		{
 			UAIMaterial* Material = NewObject<UAIMaterial>(SceneObject, UAIMaterial::StaticClass(), NAME_None,
@@ -104,12 +102,6 @@ UAIScene* UAIScene::InternalConstructNewScene(UObject* Parent, const aiScene* Sc
 			Material->Material = Scene->mMaterials[Index];
 			SceneObject->OwnedMaterials[Index] = Material;
 			FLinearColor baseColor; 
-			float metallic; 
-			Material->GetMaterialBaseColor(baseColor);
-			Material->GetMaterialMetallic(metallic);
-			UE_LOG(LogAssimp, Warning, TEXT("name of material: %s"), *Material->GetMaterialName());
-			UE_LOG(LogAssimp, Warning, TEXT("base color: %s"), *baseColor.ToString()); 
-			UE_LOG(LogAssimp, Warning, TEXT("metallic: %f"), metallic); 
 		}
 	}
 
@@ -161,6 +153,9 @@ UAIScene* UAIScene::InternalConstructNewScene(UObject* Parent, const aiScene* Sc
         if (!DisableAutoSpaceChange) {
              Scene->mRootNode->mTransformation = AdjustmentXfm * Scene->mRootNode->mTransformation;
         }
+	// walk along node tree and retrieve scene hierarchy+
+	TArray<UAINode*> childNodes = RootNode->GetChildNodes();
+	//for(int index = 0; i<RootNode->mChildren
 
 	return SceneObject;
 }
@@ -180,7 +175,6 @@ TArray<UMeshComponent*> UAIScene::SpawnAllMeshes(FTransform Transform, TSubclass
 		for (const auto Mesh : OwnedMeshes)
 		{
 			//mesh data will be owned by the scene object
-
 			AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ClassToSpawn, Transform);
 			UAssimpMesh* AssimpMesh = NewObject<UAssimpMesh>(SpawnedActor, UAssimpMesh::StaticClass());
 			AssimpMesh->RegisterComponent();
@@ -239,6 +233,7 @@ const TArray<UAILight*>& UAIScene::GetAllLights() const
 {
 	return OwnedLights;
 }
+
 
 UTexture2D* UAIScene::GetEmbeddedTexture(FString FilePath, bool bIsNormalMap)
 {
@@ -339,3 +334,105 @@ EPixelFormat UAIScene::GetPixelFormat(const aiTexture* Texture)
 {
 	return SceneScale;
 }
+
+ // NEEDS TO BE IMPLEMENTED
+/* static void UAIScene::GetEmbeddedTexturePathAndType(FString& texturePath, EAiTextureType& textureType) {
+	 FString path; 
+
+ }*/
+
+ void  UAIScene::ConstructAssimpSceneAndWriteToFBXFile(UObject* Parent, TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData, TArray <UMaterialInstanceDynamic*> dynamicMaterialInstances)
+ {	
+	 // init new aiScene
+	 aiScene* scene = new aiScene(); 
+	 scene->mNumMeshes = sceneMeshData.Num();
+	 scene->mMeshes = new aiMesh * [scene->mNumMeshes];
+	 scene->mMaterials = new aiMaterial * [scene->mNumMeshes];
+	
+	 // init transformation of root node
+	 aiVector3D scale = aiVector3D(1, 1, 1); 
+	 aiVector3D pos = aiVector3D(0, 0, 0); 
+	 /* not sure about this*/
+	 aiQuaternion rot = aiQuaternion(aiVector3D(0, 1, 1), 0); 
+	 aiMatrix4x4 transf = aiMatrix4x4(scale, rot, pos); 
+	 
+	 // init new root node
+	 scene->mRootNode = new aiNode();
+	 scene->mRootNode->mName = "RootNode";
+	 scene->mRootNode->mTransformation = transf;
+
+	 // initialize child nodes according to number of meshes given in mesh data struct, each mesh will be associated with its own child node
+	 //scene->mRootNode->mNumMeshes = sceneMeshData.Num(); 
+	 scene->mRootNode->mNumMeshes = 0; 
+	 scene->mRootNode->mMeshes = new unsigned int[0];
+	 scene->mRootNode->mNumChildren = sceneMeshData.Num(); 
+	 //scene->mRootNode->mChildren = aiNode[sceneMeshData.Num()]; 
+	 for (int i = 0; i < sceneMeshData.Num(); i++) {
+		 // retrieve data from input 
+		 FSTRUCT_ExportProcMeshData_CPP item = sceneMeshData[i]; 
+		 TArray<FVector> verts = item.vertices; 
+		 TArray<int32> tris = item.triangles; 
+		 TArray<FVector> norms = item.normals; 
+		 TArray<FVector2D> uvs = item.UV0; 
+		 TArray<FProcMeshTangent> tans = item.tangents; 
+		 FTransform trans = item.nodeTransform; 
+		 TArray<int32> matId = item.materialIdcs; 
+
+		 // initialize and set up child node
+		 aiNode* child = new aiNode();
+		 child->mParent = scene->mRootNode;
+		 child->mNumMeshes = 1;
+		 child->mMeshes[0] = i;
+		
+		 // calculate ai transform
+		 aiVector3D scale = aiVector3D(1, 1, 1);
+		 aiVector3D pos = aiVector3D(0, 0, 0);
+		 /* not sure about this*/
+		 aiQuaternion rot = aiQuaternion(aiVector3D(0, 1, 1), 0);
+		 aiMatrix4x4 transf = aiMatrix4x4(scale, rot, pos);
+
+
+		 child->mTransformation
+		
+		 // using the geometry information provided in the input, construct mesh
+		 aiMesh* mesh = new aiMesh();
+		 mesh->mNumVertices = verts.Num(); 
+		 mesh->mVertices = new aiVector3D[mesh->mNumVertices]; 
+		 mesh->mNormals = new aiVector3D[mesh->mNumVertices]; 
+		 mesh->mTangents = new aiVector3D[mesh->mNumVertices];
+		 mesh->mBitangents = new aiVector3D[mesh->mNumVertices]; 
+		 
+		 /* ???? */
+		 mesh->mTextureCoords[0] = new aiVector3D[mesh->mNumVertices]; 
+		 mesh->mNumUVComponents[0] = 2;
+
+		 // now assign vertices etc
+		 for (int j = 0; j < verts.Num();j++)
+		 {	
+			 UE_LOG(LogAssimp, Warning, TEXT("works here")); 
+			 //aiVector3D aiVert =  
+			 mesh->mVertices[j] = aiVector3D(verts[j].X, verts[j].Y, verts[j].Z);
+			 mesh->mNormals[j] = aiVector3D(norms[j].X, norms[j].Y, norms[j].Z);
+			 //FProcMeshTangent tan = tans[j]; 
+			 //FProcMeshTangent test = FProcMeshTangent(1, 0.5, 3); 
+
+			 //lets try without tangents 
+		 }
+
+
+		 
+
+		 // Just for testing if this works so far
+		 for (int j = 0; j < matId.Num(); j++)
+		 {
+			 UE_LOG(LogAssimp, Warning, TEXT("mat id = %d"), matId[j]); 
+		 }
+
+	 }
+
+
+ }
+
+ /*void UAIScene::AddMeshAsNode(UAIScene* targetScene) {
+
+ }*/

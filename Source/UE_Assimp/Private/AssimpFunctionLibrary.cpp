@@ -364,7 +364,7 @@ UAIScene* UAssimpFunctionLibrary::ImportScene(FString FileName, UObject* ParentO
 }
 
 
-UAIScene* UAssimpFunctionLibrary::NewImportScene(FString FileName, UObject* ParentObject, int Flags, bool DisableAutoSpaceChange, TArray <FTransform>& nodeTransforms)
+UAIScene* UAssimpFunctionLibrary::NewImportScene(FString FileName, UObject* ParentObject, int Flags, bool DisableAutoSpaceChange, TArray <FTransform>& nodeTransforms, TArray <FSTRUCT_NodeMeshHolder_CPP>& sceneMeshHolder, TArray <int32>& materialIndices)
 {
 	Assimp::DefaultLogger::set(new UEAssimpStream());
 
@@ -389,19 +389,45 @@ UAIScene* UAssimpFunctionLibrary::NewImportScene(FString FileName, UObject* Pare
 			const TArray <UAINode*> children = root->GetChildNodes();
 			UE_LOG(LogAssimp, Warning, TEXT("Root node num of children: %d"), children.Num());
 
-			TArray <UAIMesh*> meshes; 
+			TArray<UAIMesh*> meshes; 
 			root->GetNodeMeshes(meshes);
+			int32 num = meshes.Num(); 
+
+			TArray<FSTRUCT_NodeMeshHolder_CPP> finMeshHolder; 
+			TArray<int32> finMatIndexHolder;
+			UE_LOG(LogAssimp, Warning, TEXT("root->GetNodeMeshes.Num(): %d"), num);
+			// for each child node of the root node: 
 			for (int i = 0; i < children.Num(); i++) {
+				// retrieve meshes of node
+				TArray<UAIMesh*> locMeshes; 
+				children[i]->GetNodeMeshes(locMeshes);
+				UE_LOG(LogAssimp, Warning, TEXT("Current node has meshes: %d"), locMeshes.Num());
+				// assign child meshes to holder struct and to array of structs
+				FSTRUCT_NodeMeshHolder_CPP holder; 
+				holder.nodeMeshes = locMeshes; 
+				finMeshHolder.Add(holder); 
+
+				// get transforms of child nodes
 				FTransform temp;
 				children[i]->GetNodeTransform(temp);
+
+				// retrieve material indices from each mesh
+				for (int j = 0; j < locMeshes.Num(); j++) {
+					//tempMatIdcs.Add(locMeshes[j]->GetMaterialIndex()); 
+					finMatIndexHolder.Add(locMeshes[j]->GetMaterialIndex());
+					UE_LOG(LogAssimp, Warning, TEXT("Material index: %d"), locMeshes[j]->GetMaterialIndex());
+				}
 				FVector meshLoc = temp.GetLocation();
 				FVector meshScale = temp.GetScale3D();
 				//relPosVectors.Add(meshLoc);
-				UE_LOG(LogAssimp, Warning, TEXT("loc: %s"), *meshLoc.ToString());
-				UE_LOG(LogAssimp, Warning, TEXT("scale: %s"), *meshScale.ToString());
+				//UE_LOG(LogAssimp, Warning, TEXT("loc: %s"), *meshLoc.ToString());
+				//UE_LOG(LogAssimp, Warning, TEXT("scale: %s"), *meshScale.ToString());
 				nodeTransforms.Add(temp);
 			}
+			materialIndices = finMatIndexHolder;
+			sceneMeshHolder = finMeshHolder;  
 		}
+		 
 		return Object;
 	}
 }
@@ -480,12 +506,17 @@ FTransform UAssimpFunctionLibrary::aiMatToTransform(aiMatrix4x4 NodeTransform)
 	return Transform;
 }
 
+/*NEEDS TO BE IMPLEMENTED*/
+static aiMatrix4x4 TransformtoaiMat(FTransform NodeTransform)
+{
+
+}
+
 
 FString UAssimpFunctionLibrary::GetBoneName(FAIBone Bone)
 {
 	return UTF8_TO_TCHAR(Bone.Bone->mName.C_Str());
 }
-
 int UAssimpFunctionLibrary::GetNumOfWeights(FAIBone Bone)
 {
 	return Bone.Bone->mNumWeights;
