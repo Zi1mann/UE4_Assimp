@@ -9,7 +9,9 @@
 #include "assimp/Exporter.hpp"
 #include "UObject/NoExportTypes.h"
 #include "ProceduralMeshComponent.h"
+//#include "C:/Users/TheaterDo_Medienabt/Documents/UnrealProjects/DigitaleBuehne5.1/Source/Dortmund_DigitaleBuehne/DigitaleBuehneLibrary.h""
 #include "AIScene.generated.h"
+
 
 
 USTRUCT(BlueprintType)
@@ -35,6 +37,34 @@ struct FSTRUCT_ExportProcMeshData_CPP
 		UObject* SafeObjectPointer;
 };
 
+
+/* This struct acts as container for a single scene element associated with a single interactable Actor.
+The PlayerCharacter will hold a TArray<FSTRUCT_FullSceneElement_CPP> as container for the full scene.
+int32 actorIdx                  index of the actor in the PlayerCharacter s Array of interactable Actors present in the scene
+int32 numOfChildActors          number of child Actors attached to this Actor
+TArray<int32>                   indices of the child Actors in the PlayerCharacter s Array of interactable Actors
+FSTRUCT_ProceduralMeshData_CPP actorMeshData    geometry information of Actor Mesh, also includes Material data
+*/
+USTRUCT(BlueprintType)
+struct FSTRUCT_FullSceneElement_CPP
+{
+	GENERATED_BODY()
+		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		int32 actorIdx;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		int32 numOfChildActors;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray<int32> childActorIndices;
+
+	// init empty struct for the mesh geometry data which also contains material paramters
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FSTRUCT_ExportProcMeshData_CPP actorMeshData = {}; 
+
+	UPROPERTY()
+		UObject* SafeObjectPointer;
+};
+
+
 /**
  * 
  */
@@ -59,7 +89,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static void ConstructAssimpSceneAndWriteToFBXFile(UObject* Parent, TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData, TArray <UMaterialInstanceDynamic*> dynamicMaterialInstances);
 	UFUNCTION(BlueprintCallable)
-	static void EmptySceneTestExport(); 
+	static void EmptySceneTestExport(TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData);
 
 	UFUNCTION(BlueprintCallable)
 	static void AddNumbersAsync(TArray<float> InData, const FAsyncDelegateExample& OutData);

@@ -434,7 +434,7 @@ UAIScene* UAssimpFunctionLibrary::NewImportScene(FString FileName, UObject* Pare
 
 
 
-void UAssimpFunctionLibrary::ImportScenesAsync(TArray<FString> InFilenames,UObject* ParentObject, int Flags, bool DisableAutoSpaceChange,FOnProgressUpdated OnProgressUpdated,FOnImportSceneComplete OnImportSceneComplete)
+void UAssimpFunctionLibrary::ImportScenesAsync(FString InFilename,UObject* ParentObject, int Flags, bool DisableAutoSpaceChange,FOnProgressUpdated OnProgressUpdated,FOnImportSceneComplete OnImportSceneComplete)
 	{
 
 	//I'm a noob in realms of async if you find a better way to keep data do a pull request
@@ -446,7 +446,7 @@ void UAssimpFunctionLibrary::ImportScenesAsync(TArray<FString> InFilenames,UObje
 	
 	static  int NumOfThreads=0;
 	static int TotalThreads=0;
-	NumOfThreads=TotalThreads=InFilenames.Num();
+	NumOfThreads=TotalThreads=1;
 	static TArray<UAIScene*> AIScenes;
 	AIScenes.Empty();
 	
@@ -454,11 +454,9 @@ void UAssimpFunctionLibrary::ImportScenesAsync(TArray<FString> InFilenames,UObje
 	{
 		return;
 	}
-	for( FString FileName:InFilenames)
-	{
 		AsyncTask(ENamedThreads::AnyNormalThreadNormalTask,[&]()
 	   { 
-			const struct aiScene* scene = aiImportFile( TCHAR_TO_UTF8( *FileName),Flags);
+			const struct aiScene* scene = aiImportFile( TCHAR_TO_UTF8( *InFilename),Flags);
 
 			if( !scene) {
 
@@ -486,7 +484,6 @@ void UAssimpFunctionLibrary::ImportScenesAsync(TArray<FString> InFilenames,UObje
 		   });
 		}
 });
-	}
 }
 
 FTransform UAssimpFunctionLibrary::aiMatToTransform(aiMatrix4x4 NodeTransform)
@@ -559,4 +556,7 @@ void UAssimpFunctionLibrary::SetActorNameDebug(AActor* InActor, FString ActorNam
 void UAssimpFunctionLibrary::GetMaterialBaseColor(UAIMaterial* inputMaterial, FLinearColor& baseColor) {
 	inputMaterial->GetMaterialBaseColor(baseColor); 
 }
+
+
+//void UAssimpFunctionLibrary::Cast
 

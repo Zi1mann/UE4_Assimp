@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "CoreMinimal.h"
+
 
 #include "AIScene.h"
 #include "AICamera.h"
@@ -10,6 +10,7 @@
 #include "AIMaterial.h"
 #include "AssimpMesh.h"
 #include "assimp/cimport.h"
+#include "CoreMinimal.h"
 #include "Kismet/KismetRenderingLibrary.h"
 #include "Serialization/BufferArchive.h"
 #include "Serialization/BufferArchive.h"
@@ -434,21 +435,122 @@ EPixelFormat UAIScene::GetPixelFormat(const aiTexture* Texture)
  }
 
 
- void UAIScene::EmptySceneTestExport()
+ void UAIScene::EmptySceneTestExport(TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData)
  {
-	 aiScene testscene;
-	 FString dir = FPaths::ProjectDir();
-	 dir += FString(TEXT("Export/Scenes/test.fbx"));
-	 Exporter exporter;
-	 if (exporter.Export(&testscene, "fbx", TCHAR_TO_ANSI(*dir)) != AI_SUCCESS)
-	 {
-		 UE_LOG(LogAssimp, Fatal, TEXT("Exporting scene to fbx failed."));
+	 // Creating a test scene
+	 //std::unique_ptr<aiScene> scene(new aiScene());
+	 aiScene* scene = new aiScene(); 
+	 
+	 // TODO: Fill the scene with data (meshes, materials, etc.)
+	 /*aiMesh* mesh = new aiMesh();
+	 mesh->mNumVertices = 3;
+	 mesh->mVertices = new aiVector3D[]{ {0,0,0}, {0,1,0}, {1,0,0} };
+	 mesh->mNumFaces = 1;
+	 mesh->mFaces = new aiFace[1];
+	 mesh->mFaces[0].mNumIndices = 3;
+	 mesh->mFaces[0].mIndices = new unsigned[] { 0, 1, 2 };
+	 mesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE; // workaround, issue #3778
+	 */
+
+	 scene->mNumMeshes = sceneMeshData.Num();
+	 UE_LOG(LogAssimp, Warning, TEXT("%d"), sceneMeshData.Num());
+	 scene->mMeshes = new aiMesh * [scene->mNumMeshes];
+	 for (unsigned i = 0; i < scene->mNumMeshes; i++) {
+		 FSTRUCT_ExportProcMeshData_CPP currentMesh = sceneMeshData[i]; 
+		 unsigned int temp = unsigned(currentMesh.vertices.Num()); 	 
+		 UE_LOG(LogAssimp, Warning, TEXT("vertices: %d"), temp);
+		 aiMesh* tempMesh = new aiMesh; 
+		 // take care of vertices
+		 tempMesh->mNumVertices = currentMesh.vertices.Num(); 
+		 tempMesh->mVertices = new aiVector3D[tempMesh->mNumVertices]; 
+		 for (int k = 0; k < currentMesh.vertices.Num(); k++) {
+			 aiVector3D vert; 
+			 vert.x = currentMesh.vertices[k][0];
+			 vert.y = currentMesh.vertices[k][1];
+			 vert.z = currentMesh.vertices[k][2]; 
+			 tempMesh->mVertices[k] = vert; 
+		 }
+
+		 // take care of faces which are given by triangles
+		 tempMesh->mNumFaces = currentMesh.triangles.Num();
+		 tempMesh->mFaces = new aiFace[tempMesh->mNumFaces];
+		 tempMesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE; // workaround, issue #3778
+		 for (int k = 0; k < currentMesh.triangles.Num(); k++) {
+			 tempMesh->mFaces[k].mNumIndices = 3;
+			 tempMesh->mFaces[k].mIndices = new unsigned[] { 0, 1, 2 };
+		 }
+		 //tempMesh->mNormals = 
+
+		 scene->mMeshes[i] = tempMesh; 
+		 UE_LOG(LogAssimp, Warning, TEXT("vertices in scene mesh: %d"), scene->mMeshes[i]->mNumVertices);
+		 UE_LOG(LogAssimp, Warning, TEXT("first vertex x coord: %f"), scene->mMeshes[i]->mVertices[1].x);
+		// UE_LOG(LogAssimp, Warning, TEXT("mesh vertices: %d"), scene->mMeshes[i]->mNumVertices);
 	 }
+
+	
+	 scene->mNumMaterials = 1;
+	 scene->mMaterials = new aiMaterial * [] { new aiMaterial() };
+	 scene->mRootNode = new aiNode();
+	 scene->mRootNode->mNumMeshes = 1;
+	 scene->mRootNode->mMeshes = new unsigned [] { 0 };
+	 scene->mMetaData = new aiMetadata(); // workaround, issue #3781
+	 
+	 //scene->mMeshes[0] = mesh; 
+
+	 // Creating an exporter
+	 Assimp::Exporter exporter;
+	
+	 // Constructing the export path
+	 FString ExportPath = FPaths::ProjectDir();
+	 ExportPath = FPaths::Combine(ExportPath, "Export");
+	 ExportPath = FPaths::ConvertRelativePathToFull(ExportPath);
+	 if (!FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*ExportPath))
+	 {
+		 FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*ExportPath);
+	 }
+	 ExportPath = FPaths::Combine(ExportPath, "Test.fbx");
+
+	 // Exporting the scene
+	 if (exporter.Export(scene, "fbx", TCHAR_TO_ANSI(*ExportPath)) != AI_SUCCESS)
+	 {
+		 UE_LOG(LogAssimp, Fatal, TEXT("Exporting scene to fbx failed: %s"), ANSI_TO_TCHAR(exporter.GetErrorString()));
+	 }
+	 
+	// scene->mNumMeshes = 1;
+	// UE_LOG(LogAssimp, Warning, TEXT(" %d"), scene->mNumMeshes);
+
+	 //scene->mMeshes = new aiMesh * [] {mesh};
+	 //scene->mNumMaterials = 1;
+	 // scene->mMaterials = new aiMaterial * [] { new aiMaterial() };
+	 //scene->mRootNode = new aiNode();
+	// scene->mRootNode->mNumMeshes = 1;
+	// scene->mRootNode->mMeshes = new unsigned [] { 0 };
+	// scene->mMetaData = new aiMetadata(); // workaround, issue #3781
+	
+	 // Creating an exporter
+	//Assimp::Exporter exporter;
+	/*
+	 // Constructing the export path
+	 FString ExportPath = FPaths::ProjectDir();
+	 ExportPath = FPaths::Combine(ExportPath, "Export");
+	 ExportPath = FPaths::ConvertRelativePathToFull(ExportPath);
+	 if (!FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*ExportPath))
+	 {
+		 FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*ExportPath);
+	 }
+	 ExportPath = FPaths::Combine(ExportPath, "Test.obj");
+
+	 // Exporting the scene
+	 if (exporter.Export(scene.get(), "obj", TCHAR_TO_ANSI(*ExportPath)) != AI_SUCCESS)
+	 {
+		 UE_LOG(LogAssimp, Fatal, TEXT("Exporting scene to fbx failed: %s"), ANSI_TO_TCHAR(exporter.GetErrorString()));
+	 }
+	*/
  }
 
 void UAIScene::AddNumbersAsync(TArray<float> InData, const FAsyncDelegateExample& Result)
 {
-	AsyncTask(ENamedThreads::AnyThread, [InData = MoveTemp(InData), Result]() mutable
+	AsyncTask(ENamedThreads::BackgroundThreadPriority, [InData = MoveTemp(InData), Result]() mutable
 	{
 		// Just for example
 		for (float& InDataElement : InData)
@@ -456,16 +558,16 @@ void UAIScene::AddNumbersAsync(TArray<float> InData, const FAsyncDelegateExample
 			InDataElement += 10;
 		}
 
-		aiScene testscene;
+		aiScene* testscene = new aiScene();
 		FString dir = FPaths::ProjectDir();
-		dir += FString(TEXT("Export/Scenes/test.fbx"));
+		dir += FString(TEXT("Export/Scenes/test.obj"));
 		Exporter exporter;
-		if (exporter.Export(&testscene, "fbx", TCHAR_TO_ANSI(*dir)) != AI_SUCCESS)
+		if (exporter.Export(testscene, "obj", "test.obj") != AI_SUCCESS)
 		{
 			UE_LOG(LogAssimp, Fatal, TEXT("Exporting scene to fbx failed."));
 		}
-
-		AsyncTask(ENamedThreads::GameThread, [OutData = MoveTemp(InData), Result]() mutable
+		
+		AsyncTask(ENamedThreads::AnyThread, [OutData = MoveTemp(InData), Result]() mutable
 		{
 			Result.ExecuteIfBound(OutData);
 		});

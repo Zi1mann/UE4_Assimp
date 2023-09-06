@@ -79,7 +79,7 @@ FileTypes					The type filters to show in the dialog. This string should be a "|
 	static UAIScene* NewImportScene(FString FileName, UObject* ParentObject, int Flags, bool DisableAutoSpaceChange, TArray <FTransform>& nodeTransforms, TArray <FSTRUCT_NodeMeshHolder_CPP>& sceneMeshHolder, TArray <int32>& materialIndices);
 	//Experimental
 	UFUNCTION(BlueprintCallable)
-	void ImportScenesAsync(TArray<FString> InFilenames,UObject* ParentObject, int Flags, bool DisableAutoSpaceChange,FOnProgressUpdated OnProgressUpdated,FOnImportSceneComplete OnImportSceneComplete);
+	void ImportScenesAsync(FString InFilename,UObject* ParentObject, int Flags, bool DisableAutoSpaceChange,FOnProgressUpdated OnProgressUpdated,FOnImportSceneComplete OnImportSceneComplete);
 
 	static FTransform aiMatToTransform(aiMatrix4x4 NodeTransform);
 	static aiMatrix4x4 TransformtoaiMat(FTransform nodeTransform);
