@@ -59,12 +59,13 @@ struct FSTRUCT_SceneNodeData_CPP
 		int32 nodeNumOfChildren;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		TArray<int32> nodeChildrenIdcs;
-	UPROPERTY(EditAnywhere, BlueprontReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FTransform nodeTransform; 
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		int32 nodeNumOfMeshes; 
 	// init empty struct for the mesh geometry data which also contains material paramters
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FSTRUCT_ExportProcMeshData_CPP nodeMeshData = {}; 
+		TArray<FSTRUCT_ExportProcMeshData_CPP> nodeMeshData; 
 
 	UPROPERTY()
 		UObject* SafeObjectPointer;
@@ -95,7 +96,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static void ConstructAssimpSceneAndWriteToFBXFile(UObject* Parent, TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData, TArray <UMaterialInstanceDynamic*> dynamicMaterialInstances);
 	UFUNCTION(BlueprintCallable)
-	static void ExportSceneToFile(TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData, FString targetFile, int32 numOfNodes);
+	static void ExportSceneToFile(TArray <FSTRUCT_SceneNodeData_CPP> sceneData, int32 numIndependentNodes, FString targetFile, int32 numOfNodes);
 
 	UFUNCTION(BlueprintCallable)
 	static void AddNumbersAsync(TArray<float> InData, const FAsyncDelegateExample& OutData);
