@@ -435,11 +435,20 @@ EPixelFormat UAIScene::GetPixelFormat(const aiTexture* Texture)
  }
 
 
- void UAIScene::EmptySceneTestExport(TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData)
+ void UAIScene::ExportSceneToFile(TArray <FSTRUCT_SceneNodeData_CPP> sceneData, FString targetFile, int32 numOfNodes)
  {
 	 // Creating a test scene
 	 //std::unique_ptr<aiScene> scene(new aiScene());
 	 aiScene* scene = new aiScene(); 
+	 scene->mNumMaterials = 1;
+	 scene->mMaterials = new aiMaterial * [] { new aiMaterial() };
+	 scene->mRootNode = new aiNode();
+	 scene->mRootNode->mNumMeshes = 1;
+	 //scene->mRootNote->mTransformation =
+     scene->mRootNode->mMeshes = new unsigned [] { 0 };
+	 scene->mRootNode->mNumChildren = sceneData.Num(); 
+	 scene->mRootNode->mChildren = new aiNode*[scene->mRootNode->mNumChildren]; 
+	 scene->mMetaData = new aiMetadata(); // workaround, issue #3781
 	 
 	 // TODO: Fill the scene with data (meshes, materials, etc.)
 	 /*aiMesh* mesh = new aiMesh();
@@ -451,49 +460,67 @@ EPixelFormat UAIScene::GetPixelFormat(const aiTexture* Texture)
 	 mesh->mFaces[0].mIndices = new unsigned[] { 0, 1, 2 };
 	 mesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE; // workaround, issue #3778
 	 */
+	 scene->mNumMeshes = sceneData.Num();
 
-	 scene->mNumMeshes = sceneMeshData.Num();
-	 UE_LOG(LogAssimp, Warning, TEXT("%d"), sceneMeshData.Num());
-	 scene->mMeshes = new aiMesh * [scene->mNumMeshes];
-	 for (unsigned i = 0; i < scene->mNumMeshes; i++) {
-		 FSTRUCT_ExportProcMeshData_CPP currentMesh = sceneMeshData[i]; 
-		 unsigned int temp = unsigned(currentMesh.vertices.Num()); 	 
-		 UE_LOG(LogAssimp, Warning, TEXT("vertices: %d"), temp);
-		 aiMesh* tempMesh = new aiMesh; 
-		 // take care of vertices
-		 tempMesh->mNumVertices = currentMesh.vertices.Num(); 
-		 tempMesh->mVertices = new aiVector3D[tempMesh->mNumVertices]; 
-		 for (int k = 0; k < currentMesh.vertices.Num(); k++) {
-			 aiVector3D vert; 
-			 vert.x = currentMesh.vertices[k][0];
-			 vert.y = currentMesh.vertices[k][1];
-			 vert.z = currentMesh.vertices[k][2]; 
-			 tempMesh->mVertices[k] = vert; 
+	 for (int elem = 0; elem < sceneData.Num(); elem++) {
+		 //for each element in the sceneData, create node and populate that will be added as child node to root node with orientation as specifed.
+		 UE_LOG(LogAssimp, Warning, TEXT("%d"), sceneMeshData.Num());
+		 scene->mMeshes = new aiMesh * [scene->mNumMeshes];
+		 for (unsigned i = 0; i < scene->mNumMeshes; i++) {
+			 FSTRUCT_ExportProcMeshData_CPP currentMesh = sceneMeshData[i];
+			 unsigned int temp = unsigned(currentMesh.vertices.Num());
+			 UE_LOG(LogAssimp, Warning, TEXT("vertices: %d"), temp);
+			 aiMesh* tempMesh = new aiMesh;
+			 // take care of vertices
+			 tempMesh->mNumVertices = currentMesh.vertices.Num();
+			 tempMesh->mVertices = new aiVector3D[tempMesh->mNumVertices];
+			 UE_LOG(LogAssimp, Warning, TEXT("current mesh vertices: %d"), tempMesh->mNumVertices);
+
+			 for (int k = 0; k < currentMesh.vertices.Num(); k++) {
+				 aiVector3D vert;
+				 vert.x = currentMesh.vertices[k][0];
+				 vert.y = currentMesh.vertices[k][1];
+				 vert.z = currentMesh.vertices[k][2];
+				 tempMesh->mVertices[k] = vert;
+			 }
+
+			 // take care of faces which are given by triangles
+			 tempMesh->mNumFaces = currentMesh.triangles.Num();
+			 UE_LOG(LogAssimp, Warning, TEXT("current mesh tris: %d"), tempMesh->mNumFaces);
+			 tempMesh->mFaces = new aiFace[tempMesh->mNumFaces];
+			 tempMesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE; // workaround, issue #3778#
+			 unsigned k = 0;
+			 while (k < static_cast<unsigned>(currentMesh.triangles.Num())) {
+				 tempMesh->mFaces[k].mNumIndices = 3;
+				 tempMesh->mFaces[k].mIndices = new unsigned[] { k, k + 1, k + 2 };
+				 UE_LOG(LogAssimp, Warning, TEXT("current mesh tris iteration: %d"), k);
+				 k++;
+			 }
+
+			 UE_LOG(LogAssimp, Warning, TEXT("Num of tris: %d"), currentMesh.triangles.Num());
+			 UE_LOG(LogAssimp, Warning, TEXT("Num of verts: %d"), currentMesh.vertices.Num());
+
+
+
+			 /*for (int k = 0; k < currentMesh.triangles.Num(); k = k + 3) {
+				 tempMesh->mFaces[k].mNumIndices = 3;
+				 unsigned id1 = static_cast<int>(currentMesh.triangles[k]);
+				 unsigned id2 = static_cast<int>(currentMesh.triangles[k]);
+				 unsigned id3 = static_cast<int>(currentMesh.triangles[k]);
+
+			 }*/
+			 //tempMesh->mNormals = 
+
+			 scene->mMeshes[i] = tempMesh;
+			 UE_LOG(LogAssimp, Warning, TEXT("vertices in scene mesh: %d"), scene->mMeshes[i]->mNumVertices);
+			 UE_LOG(LogAssimp, Warning, TEXT("first vertex x coord: %f"), scene->mMeshes[i]->mVertices[1].x);
+			 // UE_LOG(LogAssimp, Warning, TEXT("mesh vertices: %d"), scene->mMeshes[i]->mNumVertices);
 		 }
 
-		 // take care of faces which are given by triangles
-		 tempMesh->mNumFaces = currentMesh.triangles.Num();
-		 tempMesh->mFaces = new aiFace[tempMesh->mNumFaces];
-		 tempMesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE; // workaround, issue #3778
-		 for (int k = 0; k < currentMesh.triangles.Num(); k++) {
-			 tempMesh->mFaces[k].mNumIndices = 3;
-			 tempMesh->mFaces[k].mIndices = new unsigned[] { 0, 1, 2 };
-		 }
-		 //tempMesh->mNormals = 
 
-		 scene->mMeshes[i] = tempMesh; 
-		 UE_LOG(LogAssimp, Warning, TEXT("vertices in scene mesh: %d"), scene->mMeshes[i]->mNumVertices);
-		 UE_LOG(LogAssimp, Warning, TEXT("first vertex x coord: %f"), scene->mMeshes[i]->mVertices[1].x);
-		// UE_LOG(LogAssimp, Warning, TEXT("mesh vertices: %d"), scene->mMeshes[i]->mNumVertices);
+
 	 }
-
-	
-	 scene->mNumMaterials = 1;
-	 scene->mMaterials = new aiMaterial * [] { new aiMaterial() };
-	 scene->mRootNode = new aiNode();
-	 scene->mRootNode->mNumMeshes = 1;
-	 scene->mRootNode->mMeshes = new unsigned [] { 0 };
-	 scene->mMetaData = new aiMetadata(); // workaround, issue #3781
+	 
 	 
 	 //scene->mMeshes[0] = mesh; 
 
@@ -508,7 +535,7 @@ EPixelFormat UAIScene::GetPixelFormat(const aiTexture* Texture)
 	 {
 		 FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*ExportPath);
 	 }
-	 ExportPath = FPaths::Combine(ExportPath, "Test.fbx");
+	 ExportPath = FPaths::Combine(ExportPath, targetFile);
 
 	 // Exporting the scene
 	 if (exporter.Export(scene, "fbx", TCHAR_TO_ANSI(*ExportPath)) != AI_SUCCESS)
@@ -547,7 +574,7 @@ EPixelFormat UAIScene::GetPixelFormat(const aiTexture* Texture)
 	 }
 	*/
  }
-
+ 
 void UAIScene::AddNumbersAsync(TArray<float> InData, const FAsyncDelegateExample& Result)
 {
 	AsyncTask(ENamedThreads::BackgroundThreadPriority, [InData = MoveTemp(InData), Result]() mutable

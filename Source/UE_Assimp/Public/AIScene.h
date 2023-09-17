@@ -39,26 +39,32 @@ struct FSTRUCT_ExportProcMeshData_CPP
 
 
 /* This struct acts as container for a single scene element associated with a single interactable Actor.
-The PlayerCharacter will hold a TArray<FSTRUCT_FullSceneElement_CPP> as container for the full scene.
-int32 actorIdx                  index of the actor in the PlayerCharacter s Array of interactable Actors present in the scene
-int32 numOfChildActors          number of child Actors attached to this Actor
-TArray<int32>                   indices of the child Actors in the PlayerCharacter s Array of interactable Actors
-FSTRUCT_ProceduralMeshData_CPP actorMeshData    geometry information of Actor Mesh, also includes Material data
+The PlayerCharacter will hold a TArray<SceneNodeData> as container for the full scene.
+int32 nodeIdx					index of the actor in the PlayerCharacter s Array of interactable Actors present in the scene
+int32 nodeNumOfChildren			number of child Actors attached to this Actor
+TArray<int32>					indices of the child Actors in the PlayerCharacter s Array of interactable Actors
+FTransform nodeTransform		transform of node relative to origin
+FSTRUCT_ProceduralMeshData_CPP actorMeshData    geometry information of this nodes Mesh, also includes Material data
+
 */
 USTRUCT(BlueprintType)
-struct FSTRUCT_FullSceneElement_CPP
+struct FSTRUCT_SceneNodeData_CPP
 {
 	GENERATED_BODY()
-		UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		int32 actorIdx;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		int32 numOfChildActors;
+		FString nodeName; 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TArray<int32> childActorIndices;
+		int32 nodeIdx;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		int32 nodeNumOfChildren;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray<int32> nodeChildrenIdcs;
+	UPROPERTY(EditAnywhere, BlueprontReadWrite)
+		FTransform nodeTransform; 
 
 	// init empty struct for the mesh geometry data which also contains material paramters
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FSTRUCT_ExportProcMeshData_CPP actorMeshData = {}; 
+		FSTRUCT_ExportProcMeshData_CPP nodeMeshData = {}; 
 
 	UPROPERTY()
 		UObject* SafeObjectPointer;
@@ -89,7 +95,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static void ConstructAssimpSceneAndWriteToFBXFile(UObject* Parent, TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData, TArray <UMaterialInstanceDynamic*> dynamicMaterialInstances);
 	UFUNCTION(BlueprintCallable)
-	static void EmptySceneTestExport(TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData);
+	static void ExportSceneToFile(TArray<FSTRUCT_ExportProcMeshData_CPP> sceneMeshData, FString targetFile, int32 numOfNodes);
 
 	UFUNCTION(BlueprintCallable)
 	static void AddNumbersAsync(TArray<float> InData, const FAsyncDelegateExample& OutData);
