@@ -9,6 +9,7 @@
 #include "AINode.h"
 #include "AIMaterial.h"
 #include "AssimpMesh.h"
+#include "AssimpFunctionLibrary.h"
 #include "assimp/cimport.h"
 #include "CoreMinimal.h"
 #include "Kismet/KismetRenderingLibrary.h"
@@ -454,24 +455,31 @@ EPixelFormat UAIScene::GetPixelFormat(const aiTexture* Texture)
 	 scene->mNumMeshes = sceneData.Num();
 	 scene->mMeshes = new aiMesh * [scene->mNumMeshes];
 
+	 // Create and initialize new node, add to hierarchy, add all meshes associated with that Node to global mesh 
+	 // container and set correct references afterwards. 
+	 unsigned globalMeshIndex = 0; 
 	 for (int elem = 0; elem < sceneData.Num(); elem++) {
 		 //for each element in the sceneData, create node and populate that will be added as child node to root node with orientation as specifed.
 		 FSTRUCT_SceneNodeData_CPP currentNodeData = sceneData[elem];
 		 aiNode* currentNode = new aiNode(); 
-		 FString* uname; 
-		 uname = &currentNodeData.nodeName;
-		 currentNode->mName = std::string(TCHAR_TO_UTF8(uname));
-		 	 
-			 
+		 currentNode->mName = std::string(TCHAR_TO_UTF8(&currentNodeData.nodeName));
+		 //currentNode->mTransformation = UAssimpFunctionLibrary::TransformtoaiMat(currentNodeData.nodeTransform); 
+		 //aiVector3D* test; 
+		 //currentNode->mTransformation.a1 
+		 currentNode->mMeshes = new unsigned[unsigned(currentNodeData.nodeNumOfMeshes)];
+		 currentNode->mNumChildren = 0; 
+		 
+		 //indices of nodes meshes pointing to corresponding mesh in scene->mMeshes
+		 //add all Meshes to scene->mMeshes
 		 for (int meshIndex = 0; meshIndex < currentNodeData.nodeNumOfMeshes; meshIndex++) {
 			 FSTRUCT_ExportProcMeshData_CPP currentMesh = currentNodeData.nodeMeshData[meshIndex];
 			 unsigned int temp = unsigned(currentMesh.vertices.Num());
-			 UE_LOG(LogAssimp, Warning, TEXT("vertices: %d"), temp);
+			 //UE_LOG(LogAssimp, Warning, TEXT("vertices: %d"), temp);
 			 aiMesh* tempMesh = new aiMesh;
 			 // take care of vertices
 			 tempMesh->mNumVertices = currentMesh.vertices.Num();
 			 tempMesh->mVertices = new aiVector3D[tempMesh->mNumVertices];
-			 UE_LOG(LogAssimp, Warning, TEXT("current mesh vertices: %d"), tempMesh->mNumVertices);
+			 // UE_LOG(LogAssimp, Warning, TEXT("current mesh vertices: %d"), tempMesh->mNumVertices);
 
 			 for (int k = 0; k < currentMesh.vertices.Num(); k++) {
 				aiVector3D vert;
@@ -482,44 +490,52 @@ EPixelFormat UAIScene::GetPixelFormat(const aiTexture* Texture)
 			 }
 
 			 // take care of faces which are given by triangles
+			 // bugged as of now!
 			 tempMesh->mNumFaces = currentMesh.triangles.Num();
-			 UE_LOG(LogAssimp, Warning, TEXT("current mesh tris: %d"), tempMesh->mNumFaces);
+			 // UE_LOG(LogAssimp, Warning, TEXT("current mesh tris: %d"), tempMesh->mNumFaces);
 			 tempMesh->mFaces = new aiFace[tempMesh->mNumFaces];
 			 tempMesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE; // workaround, issue #3778#
 			 unsigned k = 0;
-			 while (k < static_cast<unsigned>(currentMesh.triangles.Num())) {
+
+			 // needs to be fixed
+			 while (k < unsigned(currentMesh.triangles.Num())) {
 				 tempMesh->mFaces[k].mNumIndices = 3;
-				 tempMesh->mFaces[k].mIndices = new unsigned[] { k, k + 1, k + 2 };
-				 UE_LOG(LogAssimp, Warning, TEXT("current mesh tris iteration: %d"), k);
+				 tempMesh->mFaces[k].mIndices = new unsigned[] { 0,1,2};
+				 //UE_LOG(LogAssimp, Warning, TEXT("current mesh tris iteration: %d"), k);
 				 k++;
 			 }
 
 			 UE_LOG(LogAssimp, Warning, TEXT("Num of tris: %d"), currentMesh.triangles.Num());
 			 UE_LOG(LogAssimp, Warning, TEXT("Num of verts: %d"), currentMesh.vertices.Num());
-
-
-
-			/*for (int k = 0; k < currentMesh.triangles.Num(); k = k + 3) {
-				tempMesh->mFaces[k].mNumIndices = 3;
-				unsigned id1 = static_cast<int>(currentMesh.triangles[k]);
-				unsigned id2 = static_cast<int>(currentMesh.triangles[k]);
-				unsigned id3 = static_cast<int>(currentMesh.triangles[k]);
-
-			}*/
-			//tempMesh->mNormals = 
-
-			scene->mMeshes[i] = tempMesh;
-			UE_LOG(LogAssimp, Warning, TEXT("vertices in scene mesh: %d"), scene->mMeshes[i]->mNumVertices);
-			UE_LOG(LogAssimp, Warning, TEXT("first vertex x coord: %f"), scene->mMeshes[i]->mVertices[1].x);
+			
+			 unsigned temp_index = meshIndex+globalMeshIndex;
+			 scene->mMeshes[temp_index] = tempMesh;
+			 UE_LOG(LogAssimp, Warning, TEXT("vertices in scene mesh: %d"), scene->mMeshes[temp_index]->mNumVertices);
+			 UE_LOG(LogAssimp, Warning, TEXT("first vertex x coord: %f"), scene->mMeshes[temp_index]->mVertices[1].x);
 			// UE_LOG(LogAssimp, Warning, TEXT("mesh vertices: %d"), scene->mMeshes[i]->mNumVertices);
-		}
+		 }
+		 // set references of meshes for currentNode to scene->mMeshes
+		 for (unsigned loc = 0; loc < unsigned(currentNodeData.nodeNumOfMeshes); loc++) {
+			 currentNode->mMeshes[loc] = loc + globalMeshIndex; 
+			 UE_LOG(LogAssimp, Warning, TEXT("currentNode->mMeshes[loc] = loc + globalMeshIndex: %d"), loc + globalMeshIndex);
+			 UE_LOG(LogAssimp, Warning, TEXT("scene->mMeshes[loc+globalMeshIndex]->mVertices[0].x = %f"), loc + globalMeshIndex);
 
-
-
+		 }
+		 globalMeshIndex += unsigned(currentNodeData.nodeNumOfMeshes); 
+		 // add currentNode as child to scene->rootNode 
+		 scene->mRootNode->mChildren[elem] = currentNode;
+		 // set parent node of currentNode to be scene->mRootNode
+		 currentNode->mParent = scene->mRootNode; 
 	 }
-	 
-	 
-	 //scene->mMeshes[0] = mesh; 
+
+
+	 //accessing now from the top level of the scene the nodes and meshes for testing purposes
+	 UE_LOG(LogAssimp, Warning, TEXT("scene->mRootNode->mChildren[0]->mMeshes[0] = %d"), scene->mRootNode->mChildren[0]->mMeshes[0]);
+	 UE_LOG(LogAssimp, Warning, TEXT("scene->mRootNode->mChildren[0]->mMeshes[0]->mVertices[0].x = %f"), scene->mMeshes[0]->mVertices[0].x);
+	 UE_LOG(LogAssimp, Warning, TEXT("scene->mRootNode->mChildren[0]->mMeshes[0]->mVertices[0].y = %f"), scene->mMeshes[0]->mVertices[0].y);
+	 UE_LOG(LogAssimp, Warning, TEXT("scene->mRootNode->mChildren[0]->mMeshes[0]->mVertices[0].z = %f"), scene->mMeshes[0]->mVertices[0].z);
+	 UE_LOG(LogAssimp, Warning, TEXT("scene->mRootNode->mChildren[0]->mMeshes[0]->mVertices[5].x = %f"), scene->mMeshes[0]->mVertices[5].z);
+
 
 	 // Creating an exporter
 	 Assimp::Exporter exporter;
